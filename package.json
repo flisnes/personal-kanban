@@ -1,0 +1,26 @@
+{
+  "name": "personal-kanban",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Personal kanban boards for project work, readable and writable by Claude via MCP",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b && tsc -p packages/core/tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "tsc -b --clean"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.4",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
+  }
+}

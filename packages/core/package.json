@@ -1,0 +1,29 @@
+{
+  "name": "@kanban/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared domain logic for personal-kanban: schema, card (de)serialization, ordering, mutations",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "fractional-indexing": "^3.2.0",
+    "ulid": "^3.0.0",
+    "yaml": "^2.6.0",
+    "zod": "^4.0.0"
+  }
+}
