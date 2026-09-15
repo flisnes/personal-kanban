@@ -1,3 +1,5 @@
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { Board, LoadedCard } from '@kanban/core';
 
 const PRIORITY_STYLE: Record<string, string> = {
@@ -7,7 +9,15 @@ const PRIORITY_STYLE: Record<string, string> = {
   P3: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
 };
 
-export function CardTile({
+/** Read by the board's delegated key handler, and the target it puts focus back on after a move. */
+export const MOVE_HINT_ID = 'card-move-hint';
+
+/**
+ * The whole tile is the drag handle. With a few pixels of activation slop a tap still opens the
+ * card, so there is no separate grab strip to hit — which matters most on a phone, where a 20px
+ * handle is the difference between usable and not.
+ */
+export function SortableCardTile({
   card,
   board,
   onOpen,
@@ -16,14 +26,54 @@ export function CardTile({
   board: Board;
   onOpen: () => void;
 }): React.ReactElement {
+  const { setNodeRef, listeners, transform, transition, isDragging } = useSortable({ id: card.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        // The original stays in place as a gap while the overlay follows the pointer.
+        opacity: isDragging ? 0.35 : undefined,
+      }}
+    >
+      <CardTile card={card} board={board} onOpen={onOpen} listeners={listeners} />
+    </div>
+  );
+}
+
+export function CardTile({
+  card,
+  board,
+  onOpen,
+  listeners,
+  dragging = false,
+}: {
+  card: LoadedCard;
+  board: Board;
+  onOpen: () => void;
+  listeners?: Record<string, unknown>;
+  /** Rendered inside the drag overlay rather than in a column. */
+  dragging?: boolean;
+}): React.ReactElement {
   const colours = new Map(board.labels.map((l) => [l.id, l.color]));
   const checklist = countChecklist(card.body);
 
   return (
     <button
       type="button"
+      data-card-id={card.id}
       onClick={onOpen}
-      className="w-full rounded-lg border border-[--color-line] bg-[--color-surface] p-3 text-left transition hover:border-sky-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+      aria-describedby={MOVE_HINT_ID}
+      // Without this the browser claims the touch for scrolling and a drag never starts.
+      style={{ touchAction: 'none' }}
+      {...listeners}
+      className={`w-full rounded-lg border bg-[--color-surface] p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-sky-500/40 ${
+        dragging
+          ? 'rotate-1 cursor-grabbing border-sky-400 shadow-xl'
+          : 'cursor-grab border-[--color-line] hover:border-sky-400 focus:border-sky-500'
+      }`}
     >
       <div className="flex items-start gap-2">
         <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${PRIORITY_STYLE[card.priority] ?? ''}`}>

@@ -7,7 +7,7 @@ const src = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 export default defineConfig({
   plugins: [react()],
   test: {
-    include: ['packages/*/test/**/*.test.ts', 'apps/*/test/**/*.test.tsx'],
+    include: ['packages/*/test/**/*.test.ts', 'apps/*/test/**/*.test.{ts,tsx}'],
     environment: 'node',
   },
   resolve: {

@@ -1,7 +1,7 @@
 import { ulid } from 'ulid';
 import { appendNote, serializeCard } from './card.js';
 import { archiveCardPath, cardFileName, cardPath } from './paths.js';
-import { rankAtEnd, rankAtIndex, rankAtStart, ranksBetween, sortByRank } from './rank.js';
+import { isValidRank, rankAtIndex, ranksBetween, sortByRank } from './rank.js';
 import type { Card, Estimate, LoadedCard, Priority } from './schema.js';
 import { boardCards, columnCards, getBoard, getCard, type Workspace } from './workspace.js';
 
@@ -15,6 +15,23 @@ export class KanbanError extends Error {
 export type FileChange =
   | { kind: 'write'; path: string; content: string }
   | { kind: 'delete'; path: string };
+
+/**
+ * Replay a change set over an in-memory file map. The browser uses this to show a write before it
+ * has been committed: apply, reparse, and the optimistic board is byte-identical to the one the
+ * commit will produce. (The filesystem equivalent lives in `node.ts`.)
+ */
+export function applyChangesToFiles(
+  files: ReadonlyMap<string, string>,
+  changes: readonly FileChange[],
+): Map<string, string> {
+  const next = new Map(files);
+  for (const change of changes) {
+    if (change.kind === 'delete') next.delete(change.path);
+    else next.set(change.path, change.content);
+  }
+  return next;
+}
 
 export interface OpResult {
   changes: FileChange[];
@@ -278,23 +295,30 @@ function placementRank(
   placement: Placement,
   excludeId?: string,
 ): string {
-  const sorted = sortByRank(siblings);
+  /*
+   * Every placement is measured against the card's *future* neighbours: the column as it will look
+   * once the card has left its old slot, minus any card whose rank is too corrupt to measure
+   * against. Resolving `before`/`after` against a list that still contained the moving card put it
+   * one position too far whenever it travelled downwards — dragging a card down a column is the
+   * single most common gesture there is, so this list has to be the same one throughout.
+   */
+  const neighbours = sortByRank(siblings).filter(
+    (c) => c.id !== excludeId && isValidRank(c.rank),
+  );
+  const at = (index: number): string => rankAtIndex(neighbours, index);
 
   if (placement.before !== undefined) {
-    const index = sorted.findIndex((c) => c.id === placement.before);
+    const index = neighbours.findIndex((c) => c.id === placement.before);
     if (index === -1) throw new KanbanError(`card ${placement.before} is not in that column`);
-    return rankAtIndex(sorted, index, excludeId);
+    return at(index);
   }
   if (placement.after !== undefined) {
-    const index = sorted.findIndex((c) => c.id === placement.after);
+    const index = neighbours.findIndex((c) => c.id === placement.after);
     if (index === -1) throw new KanbanError(`card ${placement.after} is not in that column`);
-    return rankAtIndex(sorted, index + 1, excludeId);
+    return at(index + 1);
   }
-  if (placement.index !== undefined) return rankAtIndex(sorted, placement.index, excludeId);
-  if (placement.position === 'top') {
-    return rankAtStart(excludeId === undefined ? sorted : sorted.filter((c) => c.id !== excludeId));
-  }
-  return rankAtEnd(excludeId === undefined ? sorted : sorted.filter((c) => c.id !== excludeId));
+  if (placement.index !== undefined) return at(placement.index);
+  return at(placement.position === 'top' ? 0 : neighbours.length);
 }
 
 function requireBoard(ws: Workspace, boardId: string) {

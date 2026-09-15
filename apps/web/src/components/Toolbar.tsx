@@ -1,5 +1,7 @@
 import { PRIORITIES, type Board } from '@kanban/core';
+import type { BoardSnapshot } from '../lib/boardStore.js';
 import type { Filters } from './BoardView.js';
+import { SyncStatus } from './SyncStatus.js';
 
 export function Toolbar({
   boards,
@@ -9,7 +11,9 @@ export function Toolbar({
   onSelectBoard,
   onRefresh,
   onSignOut,
-  refreshing,
+  onRetry,
+  onDiscard,
+  state,
 }: {
   boards: Board[];
   board: Board;
@@ -18,7 +22,9 @@ export function Toolbar({
   onSelectBoard: (id: string) => void;
   onRefresh: () => void;
   onSignOut: () => void;
-  refreshing: boolean;
+  onRetry: () => void;
+  onDiscard: () => void;
+  state: BoardSnapshot;
 }): React.ReactElement {
   const active = filters.query || filters.label || filters.priority;
 
@@ -85,13 +91,13 @@ export function Toolbar({
         )}
 
         <div className="ml-auto flex items-center gap-2">
+          <SyncStatus state={state} onRetry={onRetry} onDiscard={onDiscard} />
           <button
             type="button"
             onClick={onRefresh}
-            disabled={refreshing}
-            className="rounded-lg border border-[--color-line] px-2.5 py-1.5 text-sm hover:bg-[--color-sunken] disabled:opacity-50"
+            className="rounded-lg border border-[--color-line] px-2.5 py-1.5 text-sm hover:bg-[--color-sunken]"
           >
-            {refreshing ? 'Refreshing…' : 'Refresh'}
+            Refresh
           </button>
           <button
             type="button"

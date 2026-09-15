@@ -1,3 +1,4 @@
+import type { FileChange } from './ops.js';
 import { parseWorkspace, type Workspace } from './workspace.js';
 
 /**
@@ -24,6 +25,39 @@ export class GitHubError extends Error {
   }
 }
 
+/**
+ * The ref moved between the read the caller based its change on and the write. Not a failure —
+ * it is the expected outcome of editing the same board from a phone and from this PC, and the
+ * caller is meant to refetch, replay its operation against fresh state, and try again.
+ */
+export class ConflictError extends GitHubError {
+  constructor(message: string) {
+    super(message, 409, 'The board changed elsewhere. Reload and reapply the change.');
+    this.name = 'ConflictError';
+  }
+}
+
+export interface CommitInput {
+  /** The commit the caller's state was built on. This is the concurrency control. */
+  parentSha: string;
+  branch: string;
+  message: string;
+  changes: readonly FileChange[];
+}
+
+export interface LoadedRepo {
+  workspace: Workspace;
+  /**
+   * The raw blobs the workspace was parsed from. Callers that apply local changes optimistically
+   * replay them over these and reparse, so what the screen shows is byte-identical to what the
+   * next commit will contain — there is no second, divergent "optimistic update" code path.
+   */
+  files: Map<string, string>;
+  /** Commit the snapshot came from; pass it back as `parentSha` when committing against it. */
+  sha: string;
+  branch: string;
+}
+
 interface BlobNode {
   text?: string | null;
 }
@@ -47,12 +81,23 @@ export class GitHubClient {
   private async rest(path: string, init: RequestInit = {}): Promise<Response> {
     const response = await fetch(`${API}${path}`, {
       ...init,
-      headers: { ...this.headers, ...(init.headers as Record<string, string> | undefined) },
+      headers: {
+        ...this.headers,
+        ...(init.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...(init.headers as Record<string, string> | undefined),
+      },
     });
     if (!response.ok && response.status !== 304) {
       throw await describe(response);
     }
     return response;
+  }
+
+  /** POST/GET a Git Data endpoint and read its JSON body. */
+  private async api<T>(path: string, body?: unknown): Promise<T> {
+    const init: RequestInit =
+      body === undefined ? {} : { method: 'POST', body: JSON.stringify(body) };
+    return (await (await this.rest(path, init)).json()) as T;
   }
 
   async graphql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
@@ -91,11 +136,11 @@ export class GitHubClient {
    * GraphQL can return a directory tree with blob contents inline, so this stays a single round
    * trip no matter how many cards there are.
    */
-  async loadWorkspace(): Promise<{ workspace: Workspace; sha: string }> {
+  async loadWorkspace(): Promise<LoadedRepo> {
     const query = `
       query($owner: String!, $repo: String!) {
         repository(owner: $owner, name: $repo) {
-          defaultBranchRef { target { oid } }
+          defaultBranchRef { name target { oid } }
           boards: object(expression: "HEAD:boards") { ...tree }
           archive: object(expression: "HEAD:archive") { ...tree }
         }
@@ -119,7 +164,7 @@ export class GitHubClient {
 
     const data = await this.graphql<{
       repository: {
-        defaultBranchRef?: { target?: { oid?: string } } | null;
+        defaultBranchRef?: { name?: string; target?: { oid?: string } } | null;
         boards?: TreeNode | null;
         archive?: TreeNode | null;
       } | null;
@@ -140,8 +185,66 @@ export class GitHubClient {
 
     return {
       workspace: parseWorkspace(files),
+      files,
       sha: repository.defaultBranchRef?.target?.oid ?? '',
+      branch: repository.defaultBranchRef?.name ?? 'main',
     };
+  }
+
+  /**
+   * One commit containing every change, written through the Git Data API: build a tree on top of
+   * `parentSha`'s tree, commit it, then fast-forward the branch ref.
+   *
+   * The ref update is the concurrency control. Our commit's parent is the state the caller read,
+   * so if anything else pushed in the meantime the update is no longer a fast-forward and GitHub
+   * rejects it — surfaced as a ConflictError rather than silently clobbering the other change.
+   */
+  async commitFiles(input: CommitInput): Promise<{ sha: string }> {
+    if (input.changes.length === 0) throw new GitHubError('nothing to commit', 400);
+    const repo = `/repos/${this.config.owner}/${this.config.repo}`;
+
+    const parent = await this.api<{ tree?: { sha?: string } }>(
+      `${repo}/git/commits/${input.parentSha}`,
+    );
+    const baseTree = parent.tree?.sha;
+    if (baseTree === undefined) {
+      throw new GitHubError(`commit ${input.parentSha} has no tree`, 502);
+    }
+
+    // Inline blob content: the trees endpoint creates the blobs itself, so a multi-file change is
+    // still one request rather than one per file.
+    const tree = input.changes.map((change) =>
+      change.kind === 'delete'
+        ? { path: change.path, mode: '100644', type: 'blob', sha: null }
+        : { path: change.path, mode: '100644', type: 'blob', content: change.content },
+    );
+
+    const created = await this.api<{ sha?: string }>(`${repo}/git/trees`, {
+      base_tree: baseTree,
+      tree,
+    });
+    if (created.sha === undefined) throw new GitHubError('GitHub returned no tree sha', 502);
+
+    const commit = await this.api<{ sha?: string }>(`${repo}/git/commits`, {
+      message: input.message,
+      tree: created.sha,
+      parents: [input.parentSha],
+    });
+    if (commit.sha === undefined) throw new GitHubError('GitHub returned no commit sha', 502);
+
+    try {
+      await this.rest(`${repo}/git/refs/heads/${encodeURIComponent(input.branch)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ sha: commit.sha, force: false }),
+      });
+    } catch (error) {
+      if (error instanceof GitHubError && isNotFastForward(error)) {
+        throw new ConflictError(`${input.branch} moved since this change was prepared`);
+      }
+      throw error;
+    }
+
+    return { sha: commit.sha };
   }
 
   /**
@@ -198,4 +301,15 @@ async function describe(response: Response): Promise<GitHubError> {
     404: 'Repository not found, or the token is not scoped to it.',
   };
   return new GitHubError(message, response.status, hints[response.status]);
+}
+
+/**
+ * GitHub answers a rejected ref update with 422 and a message, not a dedicated code — and a 409
+ * shows up when the ref is being updated concurrently. Both mean "someone else got there first".
+ */
+function isNotFastForward(error: GitHubError): boolean {
+  return (
+    error.status === 409 ||
+    (error.status === 422 && /fast forward|not a fast|reference cannot be updated/i.test(error.message))
+  );
 }

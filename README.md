@@ -18,7 +18,7 @@ See [PLAN.md](./PLAN.md) for the architecture and the build phases.
 |---|---|
 | `packages/core` | Schema, card (de)serialisation, ordering, mutations, board resolution. Shared by everything else — no other package implements a board mutation of its own. |
 | `packages/mcp` | MCP stdio server over the local data repo: 14 tools, 2 prompts, a board resource. Commits and pushes board changes as it goes. |
-| `apps/web` | Vite + React SPA at [flisnes.github.io/personal-kanban](https://flisnes.github.io/personal-kanban/). Reads the private data repo from the browser. |
+| `apps/web` | Vite + React SPA at [flisnes.github.io/personal-kanban](https://flisnes.github.io/personal-kanban/). Reads *and writes* the private data repo from the browser. |
 
 ## Commands
 
@@ -51,10 +51,23 @@ off; `KANBAN_PULL_TTL_MS` and `KANBAN_PUSH_DELAY_MS` tune it.
 Open <https://flisnes.github.io/personal-kanban/> and paste a fine-grained token scoped to the data
 repo (Contents: read and write). It is stored in that browser only; "Sign out" clears it.
 
+Drag a card to move it, or use the keyboard — arrow keys walk between cards, **shift + arrow** moves
+the focused card within or across columns. Click a card to rename it, retitle the body, change
+priority, estimate and labels, or archive it. "+ Add a card" at the foot of a column captures a new
+one.
+
+Every change appears immediately and is committed in the background, one commit per change, with
+the same message the MCP server would have written. If the board moved under you — because Claude
+pushed from this PC while you were dragging on a phone — the commit is rejected, the app refetches
+and *replays* your change against the new state. Placement is expressed relative to neighbouring
+cards, so a replayed move still lands where you dropped it. The toolbar shows saving / saved, and
+offers Retry and Discard if a change cannot be delivered at all.
+
 ## Status
 
-Phases 0–3 are done: core, the MCP server with git sync, and a read-only board UI on Pages.
-Next is Phase 4 — drag and drop, and writing from the browser.
+Phases 0–4 are done: core, the MCP server with git sync, and a board UI on Pages you can read and
+write from any device. Next is Phase 5 — command palette, dark mode, WIP and staleness warnings,
+the archive browser, and PWA install.
 
 ## Known npm wrinkle
 

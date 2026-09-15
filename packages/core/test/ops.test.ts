@@ -99,6 +99,33 @@ describe('moveCard', () => {
     expect(message).toBe('kanban(demo): reposition "Third" in todo');
   });
 
+  // Dragging a card downwards used to overshoot: the reference card's index was read off a list
+  // that still contained the card being moved, so every slot below it was one out.
+  it('lands a downward move immediately after its reference card', () => {
+    const ws = makeWorkspace();
+    const { card } = moveCard(ws, 'C1', { after: 'C2' }, T0);
+    expect(card.rank > 'a1').toBe(true);
+    expect(card.rank < 'a2').toBe(true);
+  });
+
+  it('lands a downward move immediately before its reference card', () => {
+    const ws = makeWorkspace();
+    const { card } = moveCard(ws, 'C1', { before: 'C3' }, T0);
+    expect(card.rank > 'a1').toBe(true);
+    expect(card.rank < 'a2').toBe(true);
+  });
+
+  it('keeps the whole column ordered after a downward move', () => {
+    const ws = makeWorkspace();
+    const { card } = moveCard(ws, 'C1', { after: 'C2' }, T0);
+    const order = [
+      { id: 'C2', rank: 'a1' },
+      { id: 'C3', rank: 'a2' },
+      { id: card.id, rank: card.rank },
+    ].sort((a, b) => (a.rank < b.rank ? -1 : 1));
+    expect(order.map((c) => c.id)).toEqual(['C2', 'C1', 'C3']);
+  });
+
   it('lands after the last card when moving the first card to the bottom', () => {
     const ws = makeWorkspace();
     const { card } = moveCard(ws, 'C1', { position: 'bottom' }, T0);
