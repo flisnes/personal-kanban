@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-surface: #ffffff;
+  --color-sunken: #f4f5f7;
+  --color-line: #e3e5e9;
+  --color-ink: #16181d;
+  --color-muted: #6b7280;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  @apply bg-[--color-sunken] text-[--color-ink] antialiased;
+  margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-surface: #161a22;
+    --color-sunken: #0b0f19;
+    --color-line: #262c38;
+    --color-ink: #e7e9ee;
+    --color-muted: #99a1b3;
+  }
+}
+
+/* Card bodies come from user markdown; give the common elements sane defaults. */
+.markdown > * + * {
+  margin-top: 0.75rem;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  @apply font-semibold text-[--color-ink];
+}
+.markdown h2 {
+  @apply mt-5 text-sm tracking-wide uppercase text-[--color-muted];
+}
+.markdown ul {
+  @apply list-disc space-y-1 pl-5;
+}
+.markdown ol {
+  @apply list-decimal space-y-1 pl-5;
+}
+.markdown li::marker {
+  @apply text-[--color-muted];
+}
+.markdown code {
+  @apply rounded bg-[--color-sunken] px-1 py-0.5 text-[0.85em];
+}
+.markdown pre {
+  @apply overflow-x-auto rounded-lg bg-[--color-sunken] p-3 text-sm;
+}
+.markdown a {
+  @apply text-sky-600 underline underline-offset-2 dark:text-sky-400;
+}
+.markdown input[type='checkbox'] {
+  @apply mr-1 align-middle;
+}
+.markdown ul:has(input[type='checkbox']) {
+  @apply list-none pl-0;
+}
