@@ -18,7 +18,7 @@ See [PLAN.md](./PLAN.md) for the architecture and the build phases.
 |---|---|
 | `packages/core` | Schema, card (de)serialisation, ordering, mutations, board resolution. Shared by everything else — no other package implements a board mutation of its own. |
 | `packages/mcp` | MCP stdio server over the local data repo: 14 tools, 2 prompts, a board resource. Commits and pushes board changes as it goes. |
-| `apps/web` | Vite + React SPA deployed to GitHub Pages. *(not built yet)* |
+| `apps/web` | Vite + React SPA at [flisnes.github.io/personal-kanban](https://flisnes.github.io/personal-kanban/). Reads the private data repo from the browser. |
 
 ## Commands
 
@@ -46,10 +46,24 @@ if the local clone is stale. Sync is never a gate: if the network is down the ch
 disk, and the failure comes back as a warning rather than an error. `KANBAN_AUTOSYNC=0` turns it
 off; `KANBAN_PULL_TTL_MS` and `KANBAN_PUSH_DELAY_MS` tune it.
 
+## Using it in a browser
+
+Open <https://flisnes.github.io/personal-kanban/> and paste a fine-grained token scoped to the data
+repo (Contents: read and write). It is stored in that browser only; "Sign out" clears it.
+
 ## Status
 
-Phases 0–2 are done. `packages/core` and the MCP server are complete, tested and syncing; the
-boards are live and the server maintains them itself. Next is the web app (Phase 3).
+Phases 0–3 are done: core, the MCP server with git sync, and a read-only board UI on Pages.
+Next is Phase 4 — drag and drop, and writing from the browser.
 
-If `npm test` ever fails with "Cannot find native binding", it is the npm optional-dependency bug:
-delete `node_modules` and `package-lock.json` and reinstall.
+## Known npm wrinkle
+
+Any incremental `npm install <pkg>` can drop the platform-specific rollup/rolldown binaries
+([npm/cli#4828](https://github.com/npm/cli/issues/4828)), after which `npm test` fails with
+"Cannot find native binding". The fix is always the same:
+
+```bash
+rm -rf node_modules package-lock.json && npm install
+```
+
+CI uses `npm ci` from the committed lockfile and is unaffected.
