@@ -17,7 +17,7 @@ See [PLAN.md](./PLAN.md) for the architecture and the build phases.
 | Package | What it is |
 |---|---|
 | `packages/core` | Schema, card (de)serialisation, ordering, mutations, board resolution. Shared by everything else — no other package implements a board mutation of its own. |
-| `packages/mcp` | MCP stdio server over the local data repo: 13 tools, 2 prompts, a board resource. |
+| `packages/mcp` | MCP stdio server over the local data repo: 14 tools, 2 prompts, a board resource. Commits and pushes board changes as it goes. |
 | `apps/web` | Vite + React SPA deployed to GitHub Pages. *(not built yet)* |
 
 ## Commands
@@ -41,11 +41,15 @@ Then, from inside any project that a board claims via `projectPaths`, no board a
 `KANBAN_DATA_DIR` overrides where the boards live (default: the `personal-kanban-data` checkout
 beside this repo); `KANBAN_BOARD` forces a board; `KANBAN_AUTHOR` names who notes are attributed to.
 
+Every write is committed with a descriptive message and pushed on a short delay. Reads pull first
+if the local clone is stale. Sync is never a gate: if the network is down the change is already on
+disk, and the failure comes back as a warning rather than an error. `KANBAN_AUTOSYNC=0` turns it
+off; `KANBAN_PULL_TTL_MS` and `KANBAN_PUSH_DELAY_MS` tune it.
+
 ## Status
 
-Phases 0 and 1 are done: `packages/core` and the MCP server are complete and tested, and the boards
-are live. Next is git sync in the server (Phase 2) — until then, writes land on disk but are not
-committed. After that, the web app.
+Phases 0–2 are done. `packages/core` and the MCP server are complete, tested and syncing; the
+boards are live and the server maintains them itself. Next is the web app (Phase 3).
 
 If `npm test` ever fails with "Cannot find native binding", it is the npm optional-dependency bug:
 delete `node_modules` and `package-lock.json` and reinstall.

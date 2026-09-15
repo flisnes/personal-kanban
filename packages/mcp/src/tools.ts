@@ -37,14 +37,24 @@ const text = (body: string): ToolResult => ({ content: [{ type: 'text', text: bo
 /**
  * Tool errors come back as readable text rather than protocol errors: the model should be able to
  * correct itself from the message ("no column X, the columns are ...") without the call failing.
+ * Sync warnings are appended either way — a push that failed is worth saying out loud, but it does
+ * not make the operation a failure, because the change is already on disk.
  */
-async function guard(run: () => Promise<ToolResult>): Promise<ToolResult> {
+async function runGuarded(store: Store, run: () => Promise<ToolResult>): Promise<ToolResult> {
+  let result: ToolResult;
   try {
-    return await run();
+    result = await run();
   } catch (error) {
-    const message = error instanceof KanbanError || error instanceof Error ? error.message : String(error);
-    return { content: [{ type: 'text', text: message }], isError: true };
+    const message =
+      error instanceof KanbanError || error instanceof Error ? error.message : String(error);
+    result = { content: [{ type: 'text', text: message }], isError: true };
   }
+
+  const warnings = store.drainWarnings();
+  if (warnings.length > 0) {
+    result.content.push({ type: 'text', text: warnings.map((w) => `! ${w}`).join('\n') });
+  }
+  return result;
 }
 
 const boardArg = z
@@ -95,6 +105,8 @@ function summariseWrite(
 }
 
 export function registerTools(server: McpServer, store: Store): void {
+  const guard = (run: () => Promise<ToolResult>): Promise<ToolResult> => runGuarded(store, run);
+
   // ---------------------------------------------------------------- reads
 
   server.registerTool(
@@ -475,6 +487,45 @@ export function registerTools(server: McpServer, store: Store): void {
         const result = archiveCard(ws, current.id);
         await store.write(result);
         return text(`Archived "${result.card.title}" → ${result.card.path}`);
+      }),
+  );
+
+  server.registerTool(
+    'sync',
+    {
+      title: 'Sync the board repo',
+      description:
+        'Push anything queued and pull the latest. Writes sync on their own — reach for this to ' +
+        'force it, or to check whether the board repo is clean.',
+      inputSchema: z.object({}),
+    },
+    async () =>
+      guard(async () => {
+        if (!store.git.available) {
+          return text(
+            store.config.autoSync
+              ? `${store.config.dataDir} is not a git repository — changes are saved to disk only.`
+              : 'Auto-sync is off (KANBAN_AUTOSYNC=0). Changes are saved to disk only.',
+          );
+        }
+        await store.syncNow();
+        const [dirty, unpushed] = await Promise.all([
+          store.git.dirtyPaths(),
+          store.git.unpushedCount(),
+        ]);
+
+        const lines: string[] = [];
+        if (dirty.length > 0) {
+          lines.push(
+            `${dirty.length} path(s) uncommitted:`,
+            ...dirty.slice(0, 10).map((p) => `  ${p}`),
+          );
+        }
+        if (unpushed > 0) lines.push(`${unpushed} commit(s) committed locally but not pushed.`);
+        else if (unpushed < 0) lines.push('No upstream branch — changes stay on this machine.');
+
+        if (lines.length === 0) return text('Board repo is in sync with the remote.');
+        return text(lines.join('\n'));
       }),
   );
 

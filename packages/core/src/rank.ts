@@ -24,6 +24,27 @@ function assertOrdered(a: string | null, b: string | null): void {
   }
 }
 
+/**
+ * Whether a string is a well-formed order key. The library exports no validator, but its own
+ * rejection is authoritative, so ask it.
+ *
+ * This matters because card files are meant to be hand-editable. A rank typed by hand is usually
+ * not a valid fractional index, and without this check one bad file would make every insert into
+ * that column throw.
+ */
+export function isValidRank(rank: string): boolean {
+  try {
+    generateKeyBetween(rank, null);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Neighbours we can safely measure against — a corrupt rank has no meaningful position. */
+const usable = <T extends Ranked>(items: readonly T[], excludeId?: string): T[] =>
+  items.filter((i) => i.id !== excludeId && isValidRank(i.rank));
+
 /** A rank strictly between `a` and `b`. Pass null for "start of list" / "end of list". */
 export function rankBetween(a: string | null, b: string | null): string {
   assertOrdered(a, b);
@@ -67,13 +88,13 @@ export function sortByRank<T extends Ranked>(items: readonly T[]): T[] {
 
 /** Rank that places an item at the end of an already-sorted list. */
 export function rankAtEnd(sorted: readonly Ranked[]): string {
-  const last = sorted.at(-1);
+  const last = usable(sorted).at(-1);
   return rankBetween(last ? last.rank : null, null);
 }
 
 /** Rank that places an item at the start of an already-sorted list. */
 export function rankAtStart(sorted: readonly Ranked[]): string {
-  const first = sorted[0];
+  const first = usable(sorted)[0];
   return rankBetween(null, first ? first.rank : null);
 }
 
@@ -87,7 +108,7 @@ export function rankAtIndex(
   index: number,
   excludeId?: string,
 ): string {
-  const others = excludeId === undefined ? sorted : sorted.filter((i) => i.id !== excludeId);
+  const others = usable(sorted, excludeId);
   const clamped = Math.max(0, Math.min(index, others.length));
   const before = clamped > 0 ? others[clamped - 1] : undefined;
   const after = others[clamped];

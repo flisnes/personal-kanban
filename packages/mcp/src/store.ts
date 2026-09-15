@@ -9,6 +9,7 @@ import {
 } from '@kanban/core';
 import { applyChanges, gitRemote, readWorkspace } from '@kanban/core/node';
 import type { Config } from './config.js';
+import { Git } from './git.js';
 
 /**
  * Data access for the tools. The workspace is re-read on every call rather than cached: the web
@@ -18,10 +19,33 @@ import type { Config } from './config.js';
 export class Store {
   private remote: string | undefined;
   private remoteChecked = false;
+  private warnings: string[] = [];
+  readonly git: Git;
 
-  constructor(readonly config: Config) {}
+  constructor(readonly config: Config) {
+    this.git = new Git(config.dataDir, {
+      enabled: config.autoSync,
+      pullTtlMs: config.pullTtlMs,
+      pushDelayMs: config.pushDelayMs,
+    });
+  }
+
+  /**
+   * Sync trouble is reported alongside the result rather than thrown: the write already landed on
+   * disk, so failing the tool would be a lie. Tools drain these onto their output.
+   */
+  private note(warning: string | undefined): void {
+    if (warning !== undefined) this.warnings.push(warning);
+  }
+
+  drainWarnings(): string[] {
+    const drained = this.warnings;
+    this.warnings = [];
+    return drained;
+  }
 
   async load(): Promise<Workspace> {
+    this.note(await this.git.refresh());
     return readWorkspace(this.config.dataDir);
   }
 
@@ -64,8 +88,15 @@ export class Store {
 
   async write(result: OpResult): Promise<FileChange[]> {
     await applyChanges(this.config.dataDir, result.changes);
-    // Phase 2 hooks in here: commit with result.message, then debounce a push.
+    this.note(await this.git.commit(result.message, result.changes.map((c) => c.path)));
+    this.git.schedulePush();
     return result.changes;
+  }
+
+  /** Push anything queued and pull, for the sync tool and for shutdown. */
+  async syncNow(): Promise<void> {
+    this.note(await this.git.flush());
+    this.note(await this.git.refresh(true));
   }
 }
 

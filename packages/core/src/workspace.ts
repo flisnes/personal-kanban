@@ -1,7 +1,7 @@
 import { CardParseError, parseCard } from './card.js';
 import { ARCHIVE_DIR, BOARDS_DIR, segments } from './paths.js';
 import { BoardSchema, type Board, type LoadedCard } from './schema.js';
-import { sortByRank } from './rank.js';
+import { isValidRank, sortByRank } from './rank.js';
 
 export interface WorkspaceIssue {
   path: string;
@@ -77,6 +77,14 @@ export function parseWorkspace(files: Iterable<readonly [string, string]>): Work
       issues.push({
         path: card.path,
         message: `column "${card.column}" is not defined on board "${card.boardId}"`,
+      });
+    }
+    if (!isValidRank(card.rank)) {
+      issues.push({
+        path: card.path,
+        message:
+          `rank "${card.rank}" is not a valid order key — the card still shows, but its ` +
+          `position is arbitrary until it is moved`,
       });
     }
     const duplicate = seenIds.get(card.id);

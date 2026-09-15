@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   compareRank,
+  isValidRank,
   rankAtEnd,
   rankAtIndex,
   rankAtStart,
@@ -93,5 +94,38 @@ describe('placement', () => {
 
   it('handles an empty list', () => {
     expect(rankAtIndex([], 0)).toBe('a0');
+  });
+});
+
+describe('isValidRank', () => {
+  it('accepts well-formed keys', () => {
+    for (const key of ['a0', 'a0V', 'az', 'b00', 'Zz']) expect(isValidRank(key)).toBe(true);
+  });
+
+  it('rejects the shapes a human would type by hand', () => {
+    for (const key of ['b0', 'a', '', 'xyz', '1', 'first']) expect(isValidRank(key)).toBe(false);
+  });
+});
+
+// A hand-edited card with a bad rank must not block inserts into its column.
+describe('placement with a corrupt neighbour', () => {
+  const withBad = [ranked('C1', 'a0'), ranked('BAD', 'b0'), ranked('C3', 'a2')];
+
+  it('ignores the corrupt rank when appending', () => {
+    expect(rankAtEnd(withBad) > 'a2').toBe(true);
+  });
+
+  it('ignores the corrupt rank when prepending', () => {
+    expect(rankAtStart(withBad) < 'a0').toBe(true);
+  });
+
+  it('ignores the corrupt rank when inserting at an index', () => {
+    const rank = rankAtIndex(withBad, 1);
+    expect(rank > 'a0').toBe(true);
+    expect(rank < 'a2').toBe(true);
+  });
+
+  it('still works when every neighbour is corrupt', () => {
+    expect(isValidRank(rankAtEnd([ranked('X', 'b0'), ranked('Y', 'zz')]))).toBe(true);
   });
 });

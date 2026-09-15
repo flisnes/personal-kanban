@@ -105,7 +105,22 @@ function createServer(): McpServer {
     }),
   );
 
-  log(`kanban MCP server: data=${config.dataDir} cwd=${config.cwd}`);
+  // A queued push must not be lost when the client goes away, which is how this process usually
+  // ends. Best-effort: the write itself is already committed by this point.
+  let flushing = false;
+  const flush = (): void => {
+    if (flushing) return;
+    flushing = true;
+    void store.syncNow().catch(() => undefined);
+  };
+  process.once('SIGINT', flush);
+  process.once('SIGTERM', flush);
+  process.once('beforeExit', flush);
+
+  log(
+    `kanban MCP server: data=${config.dataDir} cwd=${config.cwd} ` +
+      `sync=${store.git.available ? 'on' : 'off'}`,
+  );
   return server;
 }
 

@@ -93,3 +93,14 @@ describe('parseWorkspace', () => {
     expect(ws.boards[0]?.id).toBe('renamed');
   });
 });
+
+describe('rank validation', () => {
+  it('flags a hand-typed rank but keeps the card visible', () => {
+    const ws = parseWorkspace([
+      ['boards/demo/board.json', boardJson],
+      ['boards/demo/cards/a--000001.md', cardFile({ id: 'A', title: 'A', column: 'todo', rank: 'first' })],
+    ]);
+    expect(ws.cards).toHaveLength(1);
+    expect(ws.issues[0]?.message).toMatch(/not a valid order key/);
+  });
+});
