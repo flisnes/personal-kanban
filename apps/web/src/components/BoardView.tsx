@@ -279,10 +279,10 @@ function ColumnPanel({
 
   return (
     <section className="flex w-[17rem] shrink-0 flex-col sm:w-80" aria-label={column.name}>
-      <header className="sticky top-0 flex items-baseline gap-2 bg-[--color-sunken] py-2">
+      <header className="sticky top-0 flex items-baseline gap-2 bg-sunken py-2">
         <h2 className="text-sm font-semibold">{column.name}</h2>
         <span
-          className={`text-xs ${overLimit ? 'font-semibold text-amber-600 dark:text-amber-400' : 'text-[--color-muted]'}`}
+          className={`text-xs ${overLimit ? 'font-semibold text-amber-600 dark:text-amber-400' : 'text-muted'}`}
           title={overLimit ? `Over the WIP limit of ${column.wipLimit}` : undefined}
         >
           {filtered ? `${column.cards.length} of ${column.total}` : column.total}
@@ -308,7 +308,7 @@ function ColumnPanel({
         </SortableContext>
 
         {column.cards.length === 0 && (
-          <p className="rounded-lg border border-dashed border-[--color-line] px-3 py-6 text-center text-xs text-[--color-muted]">
+          <p className="rounded-lg border border-dashed border-line px-3 py-6 text-center text-xs text-muted">
             {column.total === 0 ? 'Nothing here' : 'Nothing matches'}
           </p>
         )}

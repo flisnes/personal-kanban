@@ -73,10 +73,10 @@ export function CardTile({
       // selection and the iOS callout are off so a long-press does not pop them instead.
       style={{ touchAction: 'manipulation', WebkitTouchCallout: 'none' }}
       {...listeners}
-      className={`w-full rounded-lg border bg-[--color-surface] p-3 text-left transition select-none focus:outline-none focus:ring-2 focus:ring-sky-500/40 ${
+      className={`w-full rounded-lg border bg-surface p-3 text-left transition select-none focus:outline-none focus:ring-2 focus:ring-sky-500/40 ${
         dragging
           ? 'rotate-1 cursor-grabbing border-sky-400 shadow-xl'
-          : 'cursor-grab border-[--color-line] hover:border-sky-400 focus:border-sky-500'
+          : 'cursor-grab border-line hover:border-sky-400 focus:border-sky-500'
       }`}
     >
       <div className="flex items-start gap-2">
@@ -87,9 +87,9 @@ export function CardTile({
       </div>
 
       {(card.labels.length > 0 || card.estimate || checklist) && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-[--color-muted]">
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-muted">
           {card.labels.map((label) => (
-            <span key={label} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 ring-1 ring-[--color-line]">
+            <span key={label} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 ring-1 ring-line">
               <span
                 aria-hidden
                 className="size-2 rounded-full"
@@ -98,7 +98,7 @@ export function CardTile({
               {label}
             </span>
           ))}
-          {card.estimate && <span className="rounded px-1.5 py-0.5 ring-1 ring-[--color-line]">{card.estimate}</span>}
+          {card.estimate && <span className="rounded px-1.5 py-0.5 ring-1 ring-line">{card.estimate}</span>}
           {checklist && (
             <span className={checklist.done === checklist.total ? 'text-emerald-600 dark:text-emerald-400' : ''}>
               {checklist.done}/{checklist.total} done

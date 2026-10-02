@@ -70,9 +70,9 @@ export function CardDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={card.title}
-        className="relative flex h-dvh w-full max-w-xl flex-col overflow-y-auto border-l border-[--color-line] bg-[--color-surface] shadow-2xl"
+        className="relative flex h-dvh w-full max-w-xl flex-col overflow-y-auto border-l border-line bg-surface shadow-2xl"
       >
-        <header className="sticky top-0 z-10 border-b border-[--color-line] bg-[--color-surface]/95 px-5 py-4 backdrop-blur">
+        <header className="sticky top-0 z-10 border-b border-line bg-surface/95 px-5 py-4 backdrop-blur">
           <div className="flex items-start gap-3">
             {editingTitle ? (
               <TitleEditor
@@ -87,7 +87,7 @@ export function CardDrawer({
                 type="button"
                 onClick={() => setEditingTitle(true)}
                 title="Rename"
-                className="flex-1 rounded px-1 py-0.5 text-left text-lg leading-snug font-semibold hover:bg-[--color-sunken]"
+                className="flex-1 rounded px-1 py-0.5 text-left text-lg leading-snug font-semibold hover:bg-sunken"
               >
                 {card.title}
               </button>
@@ -96,7 +96,7 @@ export function CardDrawer({
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="rounded-lg px-2 py-1 text-xl leading-none text-[--color-muted] hover:bg-[--color-sunken]"
+              className="rounded-lg px-2 py-1 text-xl leading-none text-muted hover:bg-sunken"
             >
               ×
             </button>
@@ -139,8 +139,8 @@ export function CardDrawer({
                   onClick={() => toggleLabel(label)}
                   className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ring-1 transition ${
                     on
-                      ? 'bg-[--color-sunken] font-medium ring-sky-400'
-                      : 'text-[--color-muted] ring-[--color-line] hover:ring-sky-300'
+                      ? 'bg-sunken font-medium ring-sky-400'
+                      : 'text-muted ring-line hover:ring-sky-300'
                   }`}
                 >
                   <span aria-hidden className="size-2 rounded-full" style={{ background: colour }} />
@@ -170,7 +170,7 @@ export function CardDrawer({
                         {b.card.title}
                       </button>
                     ) : (
-                      <span className="text-[--color-muted]">{b.id} (not found)</span>
+                      <span className="text-muted">{b.id} (not found)</span>
                     )}
                   </li>
                 ))}
@@ -179,14 +179,14 @@ export function CardDrawer({
           )}
 
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-xs font-semibold tracking-wide text-[--color-muted] uppercase">
+            <h3 className="text-xs font-semibold tracking-wide text-muted uppercase">
               Description
             </h3>
             {draft === null && (
               <button
                 type="button"
                 onClick={() => setDraft(card.body)}
-                className="rounded px-2 py-1 text-xs text-sky-600 hover:bg-[--color-sunken] dark:text-sky-400"
+                className="rounded px-2 py-1 text-xs text-sky-600 hover:bg-sunken dark:text-sky-400"
               >
                 Edit
               </button>
@@ -195,11 +195,11 @@ export function CardDrawer({
 
           {draft === null ? (
             card.body.trim() ? (
-              <Suspense fallback={<p className="text-sm text-[--color-muted]">Rendering…</p>}>
+              <Suspense fallback={<p className="text-sm text-muted">Rendering…</p>}>
                 <MarkdownBody>{card.body}</MarkdownBody>
               </Suspense>
             ) : (
-              <p className="text-sm text-[--color-muted]">No description yet.</p>
+              <p className="text-sm text-muted">No description yet.</p>
             )
           ) : (
             <div>
@@ -216,7 +216,7 @@ export function CardDrawer({
                     setDraft(null);
                   }
                 }}
-                className="w-full rounded-lg border border-[--color-line] bg-[--color-sunken] p-3 font-mono text-[13px] leading-relaxed outline-none focus:border-sky-500"
+                className="w-full rounded-lg border border-line bg-sunken p-3 font-mono text-[13px] leading-relaxed outline-none focus:border-sky-500"
               />
               <div className="mt-2 flex items-center gap-2">
                 <button
@@ -232,18 +232,18 @@ export function CardDrawer({
                 <button
                   type="button"
                   onClick={() => setDraft(null)}
-                  className="rounded-lg px-3 py-1.5 text-sm text-[--color-muted] hover:bg-[--color-sunken]"
+                  className="rounded-lg px-3 py-1.5 text-sm text-muted hover:bg-sunken"
                 >
                   Cancel
                 </button>
-                <span className="ml-auto text-[10px] text-[--color-muted]">Ctrl+Enter saves</span>
+                <span className="ml-auto text-[10px] text-muted">Ctrl+Enter saves</span>
               </div>
             </div>
           )}
 
           {card.links.length > 0 && (
             <div className="mt-6">
-              <h3 className="text-xs font-semibold tracking-wide text-[--color-muted] uppercase">Links</h3>
+              <h3 className="text-xs font-semibold tracking-wide text-muted uppercase">Links</h3>
               <ul className="mt-2 space-y-1 text-sm">
                 {card.links.map((link) => (
                   <li key={link}>
@@ -262,7 +262,7 @@ export function CardDrawer({
           )}
         </div>
 
-        <footer className="border-t border-[--color-line] px-5 py-3 text-[11px] text-[--color-muted]">
+        <footer className="border-t border-line px-5 py-3 text-[11px] text-muted">
           <div className="mb-2 flex items-center gap-2">
             {confirmArchive ? (
               <>
@@ -280,7 +280,7 @@ export function CardDrawer({
                 <button
                   type="button"
                   onClick={() => setConfirmArchive(false)}
-                  className="rounded-lg px-2 py-1 text-xs hover:bg-[--color-sunken]"
+                  className="rounded-lg px-2 py-1 text-xs hover:bg-sunken"
                 >
                   Keep
                 </button>
@@ -289,7 +289,7 @@ export function CardDrawer({
               <button
                 type="button"
                 onClick={() => setConfirmArchive(true)}
-                className="rounded-lg border border-[--color-line] px-2.5 py-1 text-xs hover:bg-[--color-sunken]"
+                className="rounded-lg border border-line px-2.5 py-1 text-xs hover:bg-sunken"
               >
                 Archive card
               </button>
@@ -325,7 +325,7 @@ function TitleEditor({
         if (e.key === 'Enter') onDone(value.trim());
         if (e.key === 'Escape') onDone(initial);
       }}
-      className="flex-1 rounded border border-sky-500 bg-[--color-sunken] px-1 py-0.5 text-lg leading-snug font-semibold outline-none"
+      className="flex-1 rounded border border-sky-500 bg-sunken px-1 py-0.5 text-lg leading-snug font-semibold outline-none"
     />
   );
 }
@@ -337,7 +337,7 @@ function LabelAdder({ onAdd }: { onAdd: (label: string) => void }): React.ReactE
       <button
         type="button"
         onClick={() => setValue('')}
-        className="rounded px-2 py-1 text-xs text-[--color-muted] ring-1 ring-dashed ring-[--color-line] hover:text-[--color-fg]"
+        className="rounded px-2 py-1 text-xs text-muted ring-1 ring-dashed ring-line hover:text-ink"
       >
         + label
       </button>
@@ -358,7 +358,7 @@ function LabelAdder({ onAdd }: { onAdd: (label: string) => void }): React.ReactE
         }
         if (e.key === 'Escape') setValue(null);
       }}
-      className="w-24 rounded border border-sky-400 bg-[--color-sunken] px-2 py-1 text-xs outline-none"
+      className="w-24 rounded border border-sky-400 bg-sunken px-2 py-1 text-xs outline-none"
     />
   );
 }
@@ -375,13 +375,13 @@ function Select({
   onChange: (value: string) => void;
 }): React.ReactElement {
   return (
-    <label className="inline-flex items-center gap-1.5 text-xs text-[--color-muted]">
+    <label className="inline-flex items-center gap-1.5 text-xs text-muted">
       {label}
       <select
         value={value}
         aria-label={label}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-[--color-line] bg-[--color-surface] px-2 py-1 text-xs text-[--color-fg]"
+        className="rounded-lg border border-line bg-surface px-2 py-1 text-xs text-ink"
       >
         {options.map(([id, name]) => (
           <option key={id} value={id}>

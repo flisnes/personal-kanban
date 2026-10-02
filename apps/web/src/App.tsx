@@ -109,7 +109,7 @@ function Board({
     return (
       <Centered>
         <p className="font-medium">Could not load the board.</p>
-        <p className="mt-1 text-sm text-[--color-muted]">{state.loadError.message}</p>
+        <p className="mt-1 text-sm text-muted">{state.loadError.message}</p>
         <div className="mt-4 flex justify-center gap-2">
           <button
             type="button"
@@ -121,7 +121,7 @@ function Board({
           <button
             type="button"
             onClick={onSignOut}
-            className="rounded-lg border border-[--color-line] px-3 py-1.5 text-sm"
+            className="rounded-lg border border-line px-3 py-1.5 text-sm"
           >
             Use a different token
           </button>
@@ -136,7 +136,7 @@ function Board({
         <p className="font-medium">
           No boards in {credentials.owner}/{credentials.repo}.
         </p>
-        <p className="mt-1 text-sm text-[--color-muted]">
+        <p className="mt-1 text-sm text-muted">
           Expected at least one <code>boards/&lt;id&gt;/board.json</code>.
         </p>
       </Centered>

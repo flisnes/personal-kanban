@@ -33,7 +33,7 @@ export function ColumnComposer({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-lg border border-dashed border-[--color-line] px-3 py-2 text-left text-xs text-[--color-muted] transition hover:border-sky-400 hover:text-[--color-fg]"
+        className="rounded-lg border border-dashed border-line px-3 py-2 text-left text-xs text-muted transition hover:border-sky-400 hover:text-ink"
       >
         + Add a card
       </button>
@@ -41,7 +41,7 @@ export function ColumnComposer({
   }
 
   return (
-    <div className="rounded-lg border border-sky-400 bg-[--color-surface] p-2">
+    <div className="rounded-lg border border-sky-400 bg-surface p-2">
       <textarea
         ref={input}
         value={title}
@@ -76,11 +76,11 @@ export function ColumnComposer({
             setTitle('');
             setOpen(false);
           }}
-          className="rounded px-2 py-1 text-xs text-[--color-muted] hover:bg-[--color-sunken]"
+          className="rounded px-2 py-1 text-xs text-muted hover:bg-sunken"
         >
           Cancel
         </button>
-        <span className="ml-auto text-[10px] text-[--color-muted]">Enter to add</span>
+        <span className="ml-auto text-[10px] text-muted">Enter to add</span>
       </div>
     </div>
   );

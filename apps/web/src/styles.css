@@ -1,11 +1,36 @@
 @import 'tailwindcss';
 
-@theme {
-  --color-surface: #ffffff;
-  --color-sunken: #f4f5f7;
-  --color-line: #e3e5e9;
-  --color-ink: #16181d;
-  --color-muted: #6b7280;
+/*
+ * The palette lives in plain custom properties that flip with the colour scheme, and the theme
+ * only points at them. Tailwind resolves `@theme` once at build time, so a second `@theme` inside
+ * a media query does not make a dark variant — it silently replaces the light values. `inline`
+ * makes the utilities reference the variable itself (`var(--surface)`), so they follow the scheme
+ * at runtime.
+ */
+:root {
+  --surface: #ffffff;
+  --sunken: #f4f5f7;
+  --line: #e3e5e9;
+  --ink: #16181d;
+  --muted: #6b7280;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #161a22;
+    --sunken: #0b0f19;
+    --line: #262c38;
+    --ink: #e7e9ee;
+    --muted: #99a1b3;
+  }
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
 }
 
 html {
@@ -13,18 +38,8 @@ html {
 }
 
 body {
-  @apply bg-[--color-sunken] text-[--color-ink] antialiased;
+  @apply bg-sunken text-ink antialiased;
   margin: 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  @theme {
-    --color-surface: #161a22;
-    --color-sunken: #0b0f19;
-    --color-line: #262c38;
-    --color-ink: #e7e9ee;
-    --color-muted: #99a1b3;
-  }
 }
 
 /* Card bodies come from user markdown; give the common elements sane defaults. */
@@ -34,10 +49,10 @@ body {
 .markdown h1,
 .markdown h2,
 .markdown h3 {
-  @apply font-semibold text-[--color-ink];
+  @apply font-semibold text-ink;
 }
 .markdown h2 {
-  @apply mt-5 text-sm tracking-wide uppercase text-[--color-muted];
+  @apply mt-5 text-sm tracking-wide uppercase text-muted;
 }
 .markdown ul {
   @apply list-disc space-y-1 pl-5;
@@ -46,13 +61,13 @@ body {
   @apply list-decimal space-y-1 pl-5;
 }
 .markdown li::marker {
-  @apply text-[--color-muted];
+  @apply text-muted;
 }
 .markdown code {
-  @apply rounded bg-[--color-sunken] px-1 py-0.5 text-[0.85em];
+  @apply rounded bg-sunken px-1 py-0.5 text-[0.85em];
 }
 .markdown pre {
-  @apply overflow-x-auto rounded-lg bg-[--color-sunken] p-3 text-sm;
+  @apply overflow-x-auto rounded-lg bg-sunken p-3 text-sm;
 }
 .markdown a {
   @apply text-sky-600 underline underline-offset-2 dark:text-sky-400;

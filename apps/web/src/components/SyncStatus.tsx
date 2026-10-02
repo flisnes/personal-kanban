@@ -24,7 +24,7 @@ export function SyncStatus({
         <button
           type="button"
           onClick={onRetry}
-          className="rounded border border-[--color-line] px-2 py-1 hover:bg-[--color-sunken]"
+          className="rounded border border-line px-2 py-1 hover:bg-sunken"
         >
           Retry
         </button>
@@ -32,7 +32,7 @@ export function SyncStatus({
           type="button"
           onClick={onDiscard}
           title={syncError ?? 'Throw away the changes that could not be saved'}
-          className="rounded px-2 py-1 text-[--color-muted] hover:bg-[--color-sunken]"
+          className="rounded px-2 py-1 text-muted hover:bg-sunken"
         >
           Discard
         </button>
@@ -42,7 +42,7 @@ export function SyncStatus({
 
   if (sync === 'syncing' || sync === 'retrying') {
     return (
-      <span className="text-xs text-[--color-muted]">
+      <span className="text-xs text-muted">
         {sync === 'retrying' ? 'Board changed elsewhere — reapplying…' : 'Saving…'}
         {pending > 1 && ` (${pending})`}
       </span>
@@ -58,5 +58,5 @@ export function SyncStatus({
     );
   }
 
-  return <span className="text-xs text-[--color-muted]">Saved</span>;
+  return <span className="text-xs text-muted">Saved</span>;
 }
