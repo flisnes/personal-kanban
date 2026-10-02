@@ -1,6 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Board, LoadedCard } from '@kanban/core';
+import { countTasks } from '../lib/tasks.js';
 
 const PRIORITY_STYLE: Record<string, string> = {
   P0: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200',
@@ -59,7 +60,8 @@ export function CardTile({
   dragging?: boolean;
 }): React.ReactElement {
   const colours = new Map(board.labels.map((l) => [l.id, l.color]));
-  const checklist = countChecklist(card.body);
+  // Acceptance criteria are written as task lists, so their progress is worth surfacing.
+  const checklist = countTasks(card.body);
 
   return (
     <button
@@ -116,12 +118,3 @@ export function CardTile({
   );
 }
 
-/** Acceptance criteria are written as task lists, so their progress is worth surfacing. */
-function countChecklist(body: string): { done: number; total: number } | null {
-  const items = body.match(/^\s*[-*]\s+\[[ xX]\]/gm);
-  if (!items || items.length === 0) return null;
-  return {
-    done: items.filter((i) => /\[[xX]\]/.test(i)).length,
-    total: items.length,
-  };
-}

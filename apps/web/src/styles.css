@@ -73,8 +73,17 @@ body {
   @apply text-sky-600 underline underline-offset-2 dark:text-sky-400;
 }
 .markdown input[type='checkbox'] {
-  @apply mr-1 align-middle;
+  @apply mr-1.5 size-4 cursor-pointer align-[-3px] accent-sky-600;
 }
-.markdown ul:has(input[type='checkbox']) {
+.markdown input[type='checkbox']:disabled {
+  @apply cursor-default;
+}
+.markdown ul:has(input[type='checkbox']),
+.markdown ol:has(input[type='checkbox']) {
   @apply list-none pl-0;
+}
+.markdown li:has(> p > input[type='checkbox']),
+.markdown li:has(> input[type='checkbox']) {
+  /* Room for a finger: the box is small, the row is not. */
+  @apply py-0.5;
 }

@@ -389,3 +389,62 @@ describe('CardDrawer editing', () => {
     expect(calls).toEqual([{ kind: 'archive', value: null }]);
   });
 });
+
+describe('ticking a task in the drawer', () => {
+  // Editing the markdown to flip "[ ]" to "[x]" is what the Edit button is for; a box you can see
+  // should be a box you can click.
+  const tasks = (first: string, second: string, third: string) =>
+    ['Acceptance:', '', `- [${first}] first`, `- [${second}] second`, `- [${third}] third`, ''].join('\n');
+  const taskWorkspace = parseWorkspace([
+    [
+      'boards/demo/board.json',
+      JSON.stringify({ id: 'demo', name: 'Demo', columns: [{ id: 'todo', name: 'To Do' }], labels: [] }),
+    ],
+    ['boards/demo/cards/t.md', card('T1', 'Ship it', 'todo', 'a0', '', tasks(' ', 'x', ' '))],
+  ]);
+  const stored = taskWorkspace.cards[0]!.body;
+
+  const setup = () => {
+    const bodies: string[] = [];
+    const editor = {
+      update: (patch: { body?: string }) => {
+        if (patch.body !== undefined) bodies.push(patch.body);
+      },
+      move: () => {},
+      archive: () => {},
+    };
+    render(
+      <CardDrawer
+        card={taskWorkspace.cards[0]!}
+        board={taskWorkspace.boards[0]!}
+        cards={taskWorkspace.cards}
+        editor={editor as never}
+        onClose={() => {}}
+        onOpenCard={() => {}}
+      />,
+    );
+    return bodies;
+  };
+
+  it('renders the boxes as live controls', async () => {
+    setup();
+    const boxes = (await screen.findAllByRole('checkbox')) as HTMLInputElement[];
+    expect(boxes.map((b) => b.checked)).toEqual([false, true, false]);
+    expect(boxes.every((b) => !b.disabled)).toBe(true);
+  });
+
+  it('ticks the box that was clicked, and only that one', async () => {
+    const bodies = setup();
+    const boxes = await screen.findAllByRole('checkbox');
+    fireEvent.click(boxes[2]!);
+    // The loader trims the body, so build the expectation from what the drawer was given.
+    expect(bodies).toEqual([stored.replace('- [ ] third', '- [x] third')]);
+  });
+
+  it('clears a ticked box', async () => {
+    const bodies = setup();
+    const boxes = await screen.findAllByRole('checkbox');
+    fireEvent.click(boxes[1]!);
+    expect(bodies).toEqual([stored.replace('- [x] second', '- [ ] second')]);
+  });
+});

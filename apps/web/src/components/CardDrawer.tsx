@@ -9,6 +9,7 @@ import {
   type UpdateCardPatch,
 } from '@kanban/core';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { toggleTask } from '../lib/tasks.js';
 
 const MarkdownBody = lazy(() => import('./MarkdownBody.js'));
 
@@ -196,7 +197,14 @@ export function CardDrawer({
           {draft === null ? (
             card.body.trim() ? (
               <Suspense fallback={<p className="text-sm text-muted">Rendering…</p>}>
-                <MarkdownBody>{card.body}</MarkdownBody>
+                <MarkdownBody
+                  onToggleTask={(line) => {
+                    const body = toggleTask(card.body, line);
+                    if (body !== null) editor.update({ body });
+                  }}
+                >
+                  {card.body}
+                </MarkdownBody>
               </Suspense>
             ) : (
               <p className="text-sm text-muted">No description yet.</p>
