@@ -1,9 +1,10 @@
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
   pointerWithin,
   rectIntersection,
+  TouchSensor,
   useDroppable,
   useSensor,
   useSensors,
@@ -39,6 +40,9 @@ interface ColumnLayout {
 }
 
 const DROPPABLE = 'column:';
+
+/** How long a finger has to rest on a card before it picks the card up, and how still it must be. */
+export const TOUCH_HOLD = { delay: 250, tolerance: 5 } as const;
 
 /**
  * A column is a droppable wrapped around its cards, so a centre-distance test will sometimes pick
@@ -100,9 +104,15 @@ export function BoardView({
     document.querySelector<HTMLElement>(`[data-card-id="${CSS.escape(id)}"]`)?.focus();
   });
 
+  // Mouse and touch want opposite rules. With a mouse, moving a few pixels is unambiguous: nobody
+  // scrolls a board by dragging on a card, so a drag starts straight away. On a phone that same
+  // gesture *is* how you scroll, so a touch drag only arms after the finger has held still for a
+  // moment; a swipe that moves first is left to the browser, which pans the board. The tolerance
+  // is kept under the browsers' own scroll slop so that a drag never arms on a touch that has
+  // already become a scroll.
   const sensors = useSensors(
-    // A few pixels of slop, so a tap on a card still opens it instead of starting a drag.
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: TOUCH_HOLD }),
   );
 
   const onDragEnd = useCallback(
@@ -218,7 +228,11 @@ export function BoardView({
     <DndContext
       sensors={sensors}
       collisionDetection={preferCards}
-      onDragStart={(event: DragStartEvent) => setDragging(String(event.active.id))}
+      onDragStart={(event: DragStartEvent) => {
+        setDragging(String(event.active.id));
+        // After a long-press there is no other cue that the card has been picked up.
+        if ('vibrate' in navigator) navigator.vibrate(10);
+      }}
       onDragCancel={() => setDragging(null)}
       onDragEnd={onDragEnd}
     >

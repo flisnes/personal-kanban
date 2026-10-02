@@ -13,9 +13,10 @@ const PRIORITY_STYLE: Record<string, string> = {
 export const MOVE_HINT_ID = 'card-move-hint';
 
 /**
- * The whole tile is the drag handle. With a few pixels of activation slop a tap still opens the
- * card, so there is no separate grab strip to hit — which matters most on a phone, where a 20px
- * handle is the difference between usable and not.
+ * The whole tile is the drag handle, so there is no separate grab strip to hit — which matters
+ * most on a phone, where a 20px handle is the difference between usable and not. A tap still
+ * opens the card: with a mouse a drag needs a few pixels of movement first, and with a finger it
+ * needs a short hold (see the sensors in BoardView).
  */
 export function SortableCardTile({
   card,
@@ -66,10 +67,13 @@ export function CardTile({
       data-card-id={card.id}
       onClick={onOpen}
       aria-describedby={MOVE_HINT_ID}
-      // Without this the browser claims the touch for scrolling and a drag never starts.
-      style={{ touchAction: 'none' }}
+      // `manipulation` keeps panning and pinching with the browser — a swipe that starts on a card
+      // scrolls the board — and only drops double-tap zoom, so a tap opens the card without delay.
+      // Once a touch drag has armed, the touch sensor cancels the browser's scroll itself. Text
+      // selection and the iOS callout are off so a long-press does not pop them instead.
+      style={{ touchAction: 'manipulation', WebkitTouchCallout: 'none' }}
       {...listeners}
-      className={`w-full rounded-lg border bg-[--color-surface] p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-sky-500/40 ${
+      className={`w-full rounded-lg border bg-[--color-surface] p-3 text-left transition select-none focus:outline-none focus:ring-2 focus:ring-sky-500/40 ${
         dragging
           ? 'rotate-1 cursor-grabbing border-sky-400 shadow-xl'
           : 'cursor-grab border-[--color-line] hover:border-sky-400 focus:border-sky-500'

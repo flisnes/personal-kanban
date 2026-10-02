@@ -51,8 +51,9 @@ off; `KANBAN_PULL_TTL_MS` and `KANBAN_PUSH_DELAY_MS` tune it.
 Open <https://flisnes.github.io/personal-kanban/> and paste a fine-grained token scoped to the data
 repo (Contents: read and write). It is stored in that browser only; "Sign out" clears it.
 
-Drag a card to move it, or use the keyboard — arrow keys walk between cards, **shift + arrow** moves
-the focused card within or across columns. Click a card to rename it, retitle the body, change
+Drag a card to move it — on a touch screen, hold it for a moment first, so that a swipe scrolls the
+board instead — or use the keyboard: arrow keys walk between cards, **shift + arrow** moves the
+focused card within or across columns. Click a card to rename it, retitle the body, change
 priority, estimate and labels, or archive it. "+ Add a card" at the foot of a column captures a new
 one.
 

@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 import { parseWorkspace, type Workspace } from '@kanban/core';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../src/App.js';
-import { BoardView, type BoardActions, type Filters } from '../src/components/BoardView.js';
+import { BoardView, TOUCH_HOLD, type BoardActions, type Filters } from '../src/components/BoardView.js';
 import { CardDrawer } from '../src/components/CardDrawer.js';
 
 afterEach(cleanup);
@@ -178,6 +178,97 @@ describe('keyboard moves', () => {
     const { tile } = setup();
     fireEvent.keyDown(tile('A1'), { key: 'ArrowRight', shiftKey: true });
     expect(screen.getByText(/Scaffold the web app moved to In Progress/)).toBeTruthy();
+  });
+});
+
+describe('picking a card up', () => {
+  // The board scrolls sideways by swiping, and a column scrolls by swiping too — and both swipes
+  // start on a card more often than not. So a finger that moves straight away is scrolling, and
+  // only a finger that rests on the card first is picking it up. A mouse has no such ambiguity
+  // and keeps dragging from the first few pixels.
+  const setup = () => {
+    vi.useFakeTimers();
+    const opened: string[] = [];
+    render(
+      <BoardView
+        workspace={workspace}
+        board={board}
+        filters={NO_FILTERS}
+        actions={noActions}
+        onOpenCard={(id) => opened.push(id)}
+      />,
+    );
+    const tile = document.querySelector('[data-card-id="A1"]') as HTMLElement;
+    // While a drag is live the original stays put as a gap and a copy follows the pointer.
+    const lifted = () => document.querySelectorAll('[data-card-id="A1"]').length === 2;
+    const touch = (x: number, y: number) => ({ touches: [{ clientX: x, clientY: y }] });
+    const wait = (ms: number) => act(() => void vi.advanceTimersByTime(ms));
+    // dnd-kit settles a finished drag on a microtask, so letting go has to be awaited.
+    const release = (fire: () => void) => act(async () => void fire());
+    return { tile, lifted, touch, wait, release, opened };
+  };
+  afterEach(() => {
+    // dnd-kit swallows clicks for a moment after a drag, and lifts that on a timer.
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
+  });
+
+  it('lets a swipe that starts on a card scroll instead of dragging', async () => {
+    const { tile, lifted, touch, wait, release } = setup();
+    fireEvent.touchStart(tile, touch(10, 10));
+    wait(50);
+    fireEvent.touchMove(tile, touch(10, 40));
+    wait(TOUCH_HOLD.delay + 100);
+    expect(lifted()).toBe(false);
+    // Nothing was armed, so the browser is free to keep scrolling.
+    fireEvent.touchMove(tile, touch(10, 200));
+    expect(lifted()).toBe(false);
+    await release(() => fireEvent.touchEnd(tile, { changedTouches: [{ clientX: 10, clientY: 200 }] }));
+    expect(lifted()).toBe(false);
+  });
+
+  it('picks the card up after a finger has held still on it', async () => {
+    const { tile, lifted, touch, wait, release } = setup();
+    fireEvent.touchStart(tile, touch(10, 10));
+    // A resting finger is never perfectly still; a wobble under the tolerance must not cancel.
+    fireEvent.touchMove(tile, touch(12, 11));
+    wait(TOUCH_HOLD.delay - 50);
+    expect(lifted()).toBe(false);
+    wait(100);
+    expect(lifted()).toBe(true);
+    fireEvent.touchMove(tile, touch(12, 80));
+    expect(lifted()).toBe(true);
+    await release(() => fireEvent.touchEnd(tile, { changedTouches: [{ clientX: 12, clientY: 80 }] }));
+    expect(lifted()).toBe(false);
+  });
+
+  it('does not pick the card up when a swipe is faster than the hold', () => {
+    const { tile, lifted, touch, wait } = setup();
+    fireEvent.touchStart(tile, touch(10, 10));
+    wait(TOUCH_HOLD.delay - 20);
+    fireEvent.touchMove(tile, touch(10, 10 + TOUCH_HOLD.tolerance + 1));
+    wait(200);
+    expect(lifted()).toBe(false);
+  });
+
+  it('still drags with a mouse from the first few pixels, without a hold', async () => {
+    const { tile, lifted, release } = setup();
+    fireEvent.mouseDown(tile, { clientX: 10, clientY: 10, button: 0 });
+    fireEvent.mouseMove(tile, { clientX: 30, clientY: 10 });
+    expect(lifted()).toBe(true);
+    await release(() => fireEvent.mouseUp(tile, { clientX: 30, clientY: 10 }));
+    expect(lifted()).toBe(false);
+  });
+
+  it('opens the card on a tap', async () => {
+    const { tile, lifted, touch, wait, release, opened } = setup();
+    fireEvent.touchStart(tile, touch(10, 10));
+    wait(80);
+    await release(() => fireEvent.touchEnd(tile, { changedTouches: [{ clientX: 10, clientY: 10 }] }));
+    fireEvent.click(tile);
+    wait(TOUCH_HOLD.delay + 100);
+    expect(opened).toEqual(['A1']);
+    expect(lifted()).toBe(false);
   });
 });
 
